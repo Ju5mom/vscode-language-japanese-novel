@@ -151,7 +151,7 @@ export function markUpHtml(myHtml: string) {
     "</div>",
   );
   taggedHTML = taggedHTML.replace(
-    /<!-- (.+?) -->/g,
+    /<!-- +(.+?) +-->/g,
     '<div class="comment">$1</div>',
   );
 

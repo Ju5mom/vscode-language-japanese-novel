@@ -133,7 +133,7 @@ export function fileList(dirPath: string): FileList {
         .replace(/\s/g, "") // すべての空白文字
         .replace(/《(.+?)》/g, "") // ルビ範囲指定記号とその中の文字
         .replace(/[|｜]/g, "") // ルビ開始記号
-        .replace(/<!--(.+?)-->/, ""); // コメントアウト
+        .replace(/<!--(.+?)-->\n*/, ""); // コメントアウト
       files.push({
         dir: path.join(dirPath, dirent.name).normalize("NFC"),
         name: dirent.name,
@@ -314,7 +314,7 @@ export function getLength(textDocument: string): {
     .replace(/《(.+?)》/g, "") // ルビ範囲指定記号とその中の文字
     .replace(/[|｜]/g, "") // ルビ開始記号
     // .replace(/<!--(.+?)-->/, ""); 
-    .replace(/<!--[\s\S]*?-->/g, ''); // コメントアウト
+    .replace(/<!--[\s\S]*?-->\n*/g, ''); // コメントアウト
   let characterCount = 0;
   let sheetCount = 0;
   if (docContent !== "") {
