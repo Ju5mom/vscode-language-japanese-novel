@@ -41,10 +41,6 @@ h1 {
   transition: all 0.1s linear;
 }
 
-.tree-node:not(.expanded) > .tree-node-children{
-  visibility: hidden;
-}
-
 .tree-node.dragged {
   opacity: 0.3;
 }

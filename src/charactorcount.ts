@@ -211,18 +211,23 @@ export class CharacterCounter {
 
     let totalWritingProgressString = "";
     if (getConfig().displayProgress) {
-      // 執筆日またぎ処理
-      const launchDay = this.totalCountPreviousDate.getDate();
-      const today = new Date().getDate();
-      if (launchDay != today) {
-        console.log("日跨ぎ発生！", launchDay, today);
+      // 執筆日またぎ処理（年月日まで比較）
+      const last = this.totalCountPreviousDate;
+      const now = new Date();
+      const isSameDay =
+        last.getFullYear() === now.getFullYear() &&
+        last.getMonth() === now.getMonth() &&
+        last.getDate() === now.getDate();
+
+      if (!isSameDay) {
+        console.log("日跨ぎ発生！", last, now);
         this.workspaceState?.update("totalCountPrevious", totalCount);
-        this.workspaceState?.update("totalCountPreviousDate", new Date());
-        this.writingDate = new Date();
-        this.totalCountPreviousDate = this.writingDate;
+        this.workspaceState?.update("totalCountPreviousDate", now);
+        this.writingDate = now;
+        this.totalCountPreviousDate = now;
         this.totalCountPrevious = totalCount;
       }
-
+      
       this.totalWritingProgress = totalCount - this.totalCountPrevious;
       // console.log(
       //   "進捗デバッグ",

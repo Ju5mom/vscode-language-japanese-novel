@@ -565,9 +565,9 @@ const TreeView: React.FC<TreeViewProps> = React.memo(({
                 : ""}
           </span>
         </div>
-        {node.children && expanded && (
+        {node.children && (
           <div className="tree-node-children">
-            {node.children.map((child, index) => (
+            {expanded ? node.children.map((child, index) => (
               <TreeView
                 key={child.name}
                 // treeData={treeData} // Pass treeData to child TreeView components
@@ -584,7 +584,7 @@ const TreeView: React.FC<TreeViewProps> = React.memo(({
                 insertingNode={insertingNode}
                 draftFileType={draftFileType}
               />
-            ))}
+            )) : null}
 
             <div
               ref={dropInside as any}
