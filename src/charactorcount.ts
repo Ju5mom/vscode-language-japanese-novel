@@ -34,6 +34,20 @@ import { count } from "console";
 let projectDraftLengthObj = { lengthInNumber: 0, lengthInSheet: 0 };
 let countingFolderPath = "";
 let countingTarget = "";
+const TOTAL_PROGRESS_BASELINE_V2_KEY = "totalProgressBaselineV2";
+const LEGACY_TOTAL_COUNT_PREVIOUS_KEY = "totalCountPrevious";
+const LEGACY_TOTAL_COUNT_PREVIOUS_DATE_KEY = "totalCountPreviousDate";
+
+type LengthCount = {
+  lengthInNumber: number;
+  lengthInSheet: number;
+};
+
+type TotalProgressBaselineV2 = {
+  version: 2;
+  total: LengthCount;
+  date: string;
+};
 
 if (draftRoot() != "") {
   projectDraftLengthObj.lengthInNumber =
@@ -59,11 +73,13 @@ export class CharacterCounter {
     amountLength: { lengthInNumber: 0, lengthInSheet: 0 },
   };
   public totalCountPrevious = totalLength(draftRoot()).lengthInNumber;
+  public totalSheetCountPrevious = totalLength(draftRoot()).lengthInSheet;
   public writingDate = new Date();
   public deadlineCountPrevious = 0;
   public totalCountPreviousDate = new Date();
   public deadlineCountPreviousDate = 0;
   public totalWritingProgress = 0;
+  public totalWritingProgressSheet = 0;
   public deadlineWritingProgress = 0;
   private workspaceState: vscode.Memento | undefined;
 
@@ -73,50 +89,109 @@ export class CharacterCounter {
   constructor(private readonly context?: vscode.ExtensionContext) {
     if (context) {
       this.workspaceState = context.workspaceState;
-      this.totalCountPrevious = totalLength(draftRoot()).lengthInNumber;
+      const currentTotal = totalLength(draftRoot());
+      this.totalCountPrevious = currentTotal.lengthInNumber;
+      this.totalSheetCountPrevious = currentTotal.lengthInSheet;
       console.log("文字数カウンター初期化", totalLength(draftRoot()));
 
       //テスト用
       const ifTest = false;
       if (ifTest) {
-        context.workspaceState.update("totalCountPrevious", undefined);
-        context.workspaceState.update("totalCountPreviousDate", undefined);
-      }
-
-      // 前回記録したテキスト総数と記録日
-      // 前日までの進捗が存在しなかった時の処理
-      // 進捗がなかった場合、現在の文字数を前日分として比較対象にする。
-      if (typeof context.workspaceState.get("totalCountPrevious") != "number") {
-        console.log("ステータス初回保存");
-        //現在の文字総数を保存
+        context.workspaceState.update(LEGACY_TOTAL_COUNT_PREVIOUS_KEY, undefined);
         context.workspaceState.update(
-          "totalCountPrevious",
-          this.totalCountPrevious,
+          LEGACY_TOTAL_COUNT_PREVIOUS_DATE_KEY,
+          undefined,
         );
-        //前日の日付を保存
-        const now = new Date();
-        const yesterday = new Date(now.getTime() - 86400000);
+        context.workspaceState.update(TOTAL_PROGRESS_BASELINE_V2_KEY, undefined);
+      }
+      this._initializeProgressBaseline(currentTotal);
+    }
+  }
 
-        context.workspaceState.update("totalCountPreviousDate", yesterday);
-      } else {
-        const storedTotalCount =
-          context.workspaceState.get("totalCountPrevious");
-        this.totalCountPrevious =
-          typeof storedTotalCount == "number"
-            ? storedTotalCount
-            : this.totalCountPrevious;
+  private _isLengthCount(value: unknown): value is LengthCount {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Record<string, unknown>;
+    return (
+      typeof candidate.lengthInNumber === "number" &&
+      typeof candidate.lengthInSheet === "number"
+    );
+  }
 
-        const storedTotalCountDate = context.workspaceState.get(
-          "totalCountPreviousDate",
-        );
-        // console.log(storedTotalCountDate, typeof storedTotalCountDate);
-        this.totalCountPreviousDate =
-          typeof storedTotalCountDate == "string"
-            ? new Date(storedTotalCountDate)
-            : new Date(new Date());
-        // console.log("ステータス日", storedTotalCountDate);
+  private _isProgressBaselineV2(value: unknown): value is TotalProgressBaselineV2 {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Record<string, unknown>;
+    return (
+      candidate.version === 2 &&
+      this._isLengthCount(candidate.total) &&
+      typeof candidate.date === "string"
+    );
+  }
+
+  private _coerceDate(value: unknown, fallback: Date): Date {
+    if (typeof value === "string" || value instanceof Date) {
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) {
+        return date;
       }
     }
+    return fallback;
+  }
+
+  private _saveProgressBaseline(total: LengthCount, date: Date): void {
+    const baseline: TotalProgressBaselineV2 = {
+      version: 2,
+      total,
+      date: date.toISOString(),
+    };
+    this.workspaceState?.update(TOTAL_PROGRESS_BASELINE_V2_KEY, baseline);
+
+    // 旧キーも残して、既存利用環境との互換性を維持する
+    this.workspaceState?.update(LEGACY_TOTAL_COUNT_PREVIOUS_KEY, total.lengthInNumber);
+    this.workspaceState?.update(
+      LEGACY_TOTAL_COUNT_PREVIOUS_DATE_KEY,
+      date.toISOString(),
+    );
+  }
+
+  private _initializeProgressBaseline(currentTotal: LengthCount): void {
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 86400000);
+    const storedV2 = this.workspaceState?.get(TOTAL_PROGRESS_BASELINE_V2_KEY);
+
+    if (this._isProgressBaselineV2(storedV2)) {
+      this.totalCountPrevious = storedV2.total.lengthInNumber;
+      this.totalSheetCountPrevious = storedV2.total.lengthInSheet;
+      this.totalCountPreviousDate = this._coerceDate(storedV2.date, yesterday);
+      return;
+    }
+
+    const storedLegacyCount = this.workspaceState?.get(
+      LEGACY_TOTAL_COUNT_PREVIOUS_KEY,
+    );
+    const storedLegacyDate = this.workspaceState?.get(
+      LEGACY_TOTAL_COUNT_PREVIOUS_DATE_KEY,
+    );
+
+    if (typeof storedLegacyCount === "number") {
+      this.totalCountPrevious = storedLegacyCount;
+      // 旧フォーマットには枚数がないため、400字換算で移行する
+      this.totalSheetCountPrevious = storedLegacyCount / 400;
+      this.totalCountPreviousDate = this._coerceDate(storedLegacyDate, yesterday);
+      this._saveProgressBaseline(
+        {
+          lengthInNumber: this.totalCountPrevious,
+          lengthInSheet: this.totalSheetCountPrevious,
+        },
+        this.totalCountPreviousDate,
+      );
+      return;
+    }
+
+    console.log("ステータス初回保存");
+    this.totalCountPrevious = currentTotal.lengthInNumber;
+    this.totalSheetCountPrevious = currentTotal.lengthInSheet;
+    this.totalCountPreviousDate = yesterday;
+    this._saveProgressBaseline(currentTotal, yesterday);
   }
 
   public updateCharacterCount(): void {
@@ -221,14 +296,19 @@ export class CharacterCounter {
 
       if (!isSameDay) {
         console.log("日跨ぎ発生！", last, now);
-        this.workspaceState?.update("totalCountPrevious", totalCount);
-        this.workspaceState?.update("totalCountPreviousDate", now);
+        this._saveProgressBaseline(
+          { lengthInNumber: totalCount, lengthInSheet: totalSheetCount },
+          now,
+        );
         this.writingDate = now;
         this.totalCountPreviousDate = now;
         this.totalCountPrevious = totalCount;
+        this.totalSheetCountPrevious = totalSheetCount;
       }
       
       this.totalWritingProgress = totalCount - this.totalCountPrevious;
+      this.totalWritingProgressSheet =
+        totalSheetCount - this.totalSheetCountPrevious;
       // console.log(
       //   "進捗デバッグ",
       //   totalCount,
@@ -241,11 +321,20 @@ export class CharacterCounter {
         this.totalWritingProgress == 0 ? "±" : progressTotalIndex;
 
       // 増減分のテキストを定義
-      totalWritingProgressString =
-        " 進捗" +
+      const totalWritingProgressNumber =
         progressTotalIndex +
-        Intl.NumberFormat().format(this.totalWritingProgress) +
+        Intl.NumberFormat().format(Math.abs(this.totalWritingProgress)) +
         "文字";
+      const totalWritingProgressSheet = formatSignedSheetsAndLines(
+        this.totalWritingProgressSheet,
+      );
+      const showNumber = getConfig().displayCountOfNumber;
+      const showSheet = getConfig().displayCountOfSheet;
+      totalWritingProgressString = showSheet
+        ? " 進捗" +
+          totalWritingProgressSheet +
+          (showNumber ? `(${totalWritingProgressNumber})` : "")
+        : " 進捗" + totalWritingProgressNumber;
     }
 
     // 数字表示
@@ -577,9 +666,11 @@ export class CharacterCounter {
   private keyPressFlag = false;
 
   public _resetWritingProtgress(): void {
-    this.totalCountPrevious = totalLength(draftRoot()).lengthInNumber;
-    this.workspaceState?.update("totalCountPrevious", this.totalCountPrevious);
-    this.workspaceState?.update("totalCountPreviousDate", new Date());
+    const currentTotal = totalLength(draftRoot());
+    this.totalCountPrevious = currentTotal.lengthInNumber;
+    this.totalSheetCountPrevious = currentTotal.lengthInSheet;
+    this.totalCountPreviousDate = new Date();
+    this._saveProgressBaseline(currentTotal, this.totalCountPreviousDate);
     this.updateCharacterCount();
     vscode.window.showInformationMessage(`今日の総合進捗をリセットしました`);
   }
@@ -630,20 +721,23 @@ export class CharacterCounter {
 }
 
 export function formatSheetsAndLines(sheetFloat: number): string {
-  if (sheetFloat == 0) {
+  if (sheetFloat <= 0) {
     return "0枚0行";
   }
-  const sheetInt = Math.floor(sheetFloat);
-  const modLines = (sheetFloat - sheetInt) * 20;
+  // 枚数を0開始にするため、まず行に変換して切り上げる
+  const totalLines = Math.ceil(sheetFloat * 20);
+  const sheetInt = Math.floor(totalLines / 20);
+  const modLines = totalLines % 20;
 
-  // 行が0でない時だけsheetIntを増やす
-  const sheetsStr = `${Intl.NumberFormat().format(sheetInt + (modLines > 0 ? 1 : 0))}枚`;
+  const sheetsStr = `${Intl.NumberFormat().format(sheetInt)}枚`;
+  const linesStr = `${Intl.NumberFormat().format(modLines)}行`;
 
-  // 行の出力は20行から0行に変更
-  const linesStr =
-    modLines > 0 ? `${Intl.NumberFormat().format(modLines)}行` : "20行";
+  return `${sheetsStr}${linesStr}`;
+}
 
-  return `${sheetsStr}${linesStr ? `${linesStr}` : ""}`;
+export function formatSignedSheetsAndLines(sheetFloat: number): string {
+  const sign = sheetFloat > 0 ? "+" : sheetFloat < 0 ? "-" : "±";
+  return `${sign}${formatSheetsAndLines(Math.abs(sheetFloat))}`;
 }
 
 // MARK: コントローラー

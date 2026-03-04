@@ -692,6 +692,7 @@ export function clearWorkspaceStateCommand(context: vscode.ExtensionContext) {
   context.workspaceState.update("deadlineTextCount", undefined);
   context.workspaceState.update("totalCountPrevious", undefined);
   context.workspaceState.update("totalCountPreviousDate", undefined);
+  context.workspaceState.update("totalProgressBaselineV2", undefined);
   vscode.window.showInformationMessage('novel-wrietrがワークスペースに保存する現行フォルダー開閉情報、各種の進捗、締切フォルダーをクリアしました');
 }
 
