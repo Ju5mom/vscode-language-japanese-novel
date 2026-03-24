@@ -4,17 +4,17 @@
   "repository": {
     "expression": {
       "patterns": [
-        { "include": "#rubymother" },
-        { "include": "#aozora-motherword" },
-        { "include": "#original-word" },
-        { "include": "#numbers" },
-        { "include": "#units" },
+        { "include": "#rubymother"},
+        { "include": "#aozora-motherword"},
+        { "include": "#original-word"},
+        { "include": "#numbers"},
+        { "include": "#units"},
         { "include": "#aozora-expression" },
-        { "include": "#ruby-expression" },
-        { "include": "#parenthesis-expression" },
-        { "include": "#cornerfilledparenthesis-expression" },
-        { "include": "#cornerparenthesis-expression" },
-        { "include": "#japanesequote-expression" },
+        { "include": "#ruby-expression"},
+        { "include": "#parenthesis-expression"},
+        { "include": "#cornerfilledparenthesis-expression"},
+        { "include": "#cornerparenthesis-expression"},
+        { "include": "#japanesequote-expression"},
         { "include": "#dialogue-expression" },
         { "include": "#comment-out" }
       ]
@@ -36,10 +36,10 @@
       "name": "constant.numeric"
     },
     "units": {
-      "match": "(?<=[一二三四五六七八九十〇]+|[0-9]+|[０-９]+)([一-龠]+|[ァ-ー]+)",
+      "match":"(?<=[一二三四五六七八九十〇]+|[0-9]+|[０-９]+)([一-龠]+|[ァ-ー]+)",
       "name": "variable.parameter"
     },
-    "aozora-expression": {
+    "aozora-expression":{
       "begin": "［",
       "end": "］",
       "beginCaptures": {
@@ -49,7 +49,9 @@
         "0": { "name": "string.quoted" }
       },
       "name": "keyword",
-      "patterns": [{ "include": "#aozora-parameter" }]
+      "patterns": [
+        { "include": "#aozora-parameter" }
+      ]
     },
     "aozora-parameter": {
       "begin": "「",
@@ -62,7 +64,7 @@
       },
       "name": "keyword"
     },
-    "parenthesis-expression": {
+    "parenthesis-expression":{
       "begin": "（",
       "end": "）",
       "beginCaptures": {
@@ -73,7 +75,7 @@
       },
       "name": "keyword"
     },
-    "cornerfilledparenthesis-expression": {
+    "cornerfilledparenthesis-expression":{
       "begin": "【",
       "end": "】",
       "beginCaptures": {
@@ -84,7 +86,7 @@
       },
       "name": "keyword"
     },
-    "cornerparenthesis-expression": {
+    "cornerparenthesis-expression":{
       "begin": "［",
       "end": "］",
       "beginCaptures": {
@@ -95,7 +97,7 @@
       },
       "name": "keyword"
     },
-    "japanesequote-expression": {
+    "japanesequote-expression":{
       "begin": "〝",
       "end": "〟",
       "beginCaptures": {
@@ -106,7 +108,7 @@
       },
       "name": "keyword"
     },
-    "ruby-expression": {
+    "ruby-expression":{
       "begin": "《",
       "end": "》",
       "beginCaptures": {
@@ -128,22 +130,22 @@
       },
       "name": "string.quoted",
       "patterns": [
-        { "include": "#parenthesis-expression" },
-        { "include": "#cornerfilledparenthesis-expression" },
-        { "include": "#cornerparenthesis-expression" },
-        { "include": "#japanesequote-expression" },
+        { "include": "#parenthesis-expression"},
+        { "include": "#cornerfilledparenthesis-expression"},
+        { "include": "#cornerparenthesis-expression"},
+        { "include": "#japanesequote-expression"},
         { "include": "#aozora-expression" },
         { "include": "#aozora-parameter" },
-        { "include": "#ruby-expression" },
-        { "include": "#rubymother" },
-        { "include": "#original-word" },
-        { "include": "#numbers" },
-        { "include": "#units" },
-        { "include": "#dialogue-inline" },
-        { "include": "#parens" }
+        { "include": "#ruby-expression"},
+        { "include": "#rubymother"},
+        { "include": "#original-word"},
+        { "include": "#numbers"},
+        { "include": "#units"},
+        { "include": "#dialogue-inline"},
+        { "include": "#parens"}
       ]
     },
-    "comment-out": {
+    "comment-out":{
       "begin": "<!--\\s*",
       "end": "\\s*-->",
       "beginCaptures": {
